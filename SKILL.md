@@ -765,9 +765,10 @@ dsh-my-plugin/
 | 需求 | 方案 |
 |---|---|
 | **MCP 服务器** | 官方 **`@deepseek-ai/dsh-mcp-client`**（连接 MCP 服务器并把其工具注册到 `ctx.tools`）· 官方 `@deepseek-ai/dsh-mcp-resources`（scoped 资源读写） |
-| MCP 管理界面 | `dsh-mcp`（管理 UI + tool search 热注入，工具列表不撑爆上下文）· `@xxxyz/dsh-mcp-manager` · `dsh-mcp-market`（MCP 市场）· `dsh-mcp-setting`（设置页改 patch） |
+| MCP 管理界面 | `dsh-mcp`（管理 UI + tool search 热注入，工具列表不撑爆上下文）· **`dsh-mcp-manage`**（设置页管理 `cordis.patch.yml` 里的 MCP 服务器，逐个跑真实 initialize 握手验证）· **`dsh-mcp-manager`** · `@xxxyz/dsh-mcp-manager` · `dsh-mcp-market`（MCP 市场）· `dsh-mcp-setting`（设置页改 patch） |
 | **Hooks（不写代码）** | 官方 **`@deepseek-ai/dsh-hooks-claude-code`**（跑 Claude Code 的 `hooks.json`）· `@deepseek-ai/dsh-hooks-codex`（Codex 格式）· 底座 `@deepseek-ai/dsh-hook-protocol` |
-| **记忆 / 跨会话持久化** | `@openviking/dsh-memory-plugin` · `@furongjun1999/dsh-memory` · `dsh-mnemon` · `dsh-mnemosyne` · OpenViking |
+| **记忆 / 跨会话持久化** | `@openviking/dsh-memory-plugin` · `@furongjun1999/dsh-memory` · **`dsh-memory-search`**（向量化语义检索 + 时间衰减遗忘）· **`dsh-markdown-memory`**（纯 Markdown 为真值源，一个事实一个文件）· `dsh-mnemon` · `dsh-mnemosyne` · `dsh-memory-eternal` · `@a9i5k4/dsh-auto-memory` · OpenViking |
+| **知识库接入** | **`dsh-yuque-kb`**（把语雀文档作为外部记忆，对话中自动检索并注入相关片段，支持目录快照检索 / 云端全文搜索 / 在线阅读） |
 | **输出样式** | `dsh-output-styles`（Claude Code outputStyles 等价，运行时切换）· `@auggieteo/dsh-output-styles`（设置页管理） |
 | **技能管理** | `@michengai/dsh-skills-manager`（本地技能库 + 从 Git 仓库安装） |
 | **Git 凭据 / 推送策略** | `dsh-git-forge`（账号库 + 按项目授权 + push 拦截） |
