@@ -55,7 +55,7 @@ Copy-Item .\SKILL.md $dest
 
 | 文件 | 内容 |
 |---|---|
-| [`SKILL.md`](SKILL.md) | **技能本体**（662 行）。官方契约 + 能力地图 + 生态地图 + 六大坑 + 验证清单 + 发布规范 |
+| [`SKILL.md`](SKILL.md) | **技能本体**（692 行）。官方契约 + 能力地图 + 生态地图 + 六大坑 + 验证清单 + 发布规范 |
 | [`references/official-docs-index.md`](references/official-docs-index.md) | **官方文档地图**：文档站 + 仓库 docs 的完整索引 |
 
 ### SKILL.md 覆盖的内容
