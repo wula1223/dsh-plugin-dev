@@ -1,6 +1,45 @@
 # Official DSH documentation index
 
-Source repository: **`github.com/deepseek-ai/deepseek-harness`** (branch `master`).
+Two sources, both official:
+
+1. **Documentation site** — <https://deepseek-harness.github.io/deepseek-harness/> (VitePress; source lives in the repo under `docs/user/`)
+2. **Repo docs** — `github.com/deepseek-ai/deepseek-harness`, branch `master`, `docs/`
+
+---
+
+## 1. Documentation site (read this first)
+
+Base: `https://deepseek-harness.github.io/deepseek-harness/`
+
+> 💡 **Every page has a raw Markdown twin** — append `.md` (e.g. `/develop/basic/publish.md`). Much cleaner than scraping HTML.
+> English site: insert `en/` after the base path, e.g. `/deepseek-harness/en/develop/basic/`.
+
+### 开发 / develop
+
+| Page | Path | What it covers |
+|---|---|---|
+| 第一个插件 | `/develop/basic/` | Minimal `apply(ctx)` plugin; the three plugin forms |
+| 开发一个 Tool | `/develop/basic/tool` | Tool definition DSL |
+| 插件配置 | `/develop/basic/config` | `Config` type + Schemastery schema; no-hardcoded-knobs principle |
+| **打包与安装插件** | `/develop/basic/publish` | Bundle vs profile manifest, 4-layer ordering, the git-install build trap |
+| 插件与生命周期 | `/develop/framework/` | **Fiber state machine**, auto-cleanup, dispose semantics, HMR |
+| 服务与依赖 | `/develop/framework/service` | Providing capabilities to other plugins |
+| 事件系统 | `/develop/framework/events` | The 5 dispatch modes, typed events, naming conventions |
+| 能力的三层拆分 | `/develop/practice/` | Three-layer capability split |
+| LLM 适配器 | `/develop/practice/llm-adapter` | Implementing a full LLM backend |
+| 持久化 Harness 插件 | `/develop/practice/dynamic-cordis` | Dynamic persistence |
+| Cordis 教程 | `/develop/cordis-tutorial/` | 7 hands-on chapters, no API key needed |
+
+### 入门 / guide · 参考 / reference
+
+| Section | Path |
+|---|---|
+| 快速开始 | `/guide/quickstart` |
+| 参考（子系统、配置、工具目录） | `/reference/` |
+
+---
+
+## 2. Repo docs
 
 Raw file pattern:
 
@@ -10,20 +49,18 @@ https://raw.githubusercontent.com/deepseek-ai/deepseek-harness/master/docs/<file
 
 Nearly every document has a Chinese twin: replace `.md` with `.zh.md`.
 
----
-
-## Plugin development
+### Plugin development
 
 | Document | Size | What it covers |
 |---|---|---|
-| `docs/cordis-primer.md` / `.zh.md` | 4 KB | The five core cordis concepts: plugin = Service, context as container, `inject`, typed events, reversible effects |
-| `docs/cordis-tutorial/` | 8 chapters | Hands-on: 01 first plugin → 02 lifecycle & effects → 03 services → 04 events → 05 config → 06 composition & HMR → 07 into the harness |
+| `docs/cordis-primer.md` / `.zh.md` | 4 KB | The five core cordis concepts |
+| `docs/cordis-tutorial/` | 8 chapters | First plugin → lifecycle → services → events → config → HMR → into the harness |
 | `docs/cordis-api/` | — | Generated Cordis core API reference |
 | `docs/capability-seams.md` / `.zh.md` | **61 KB** | Every extension point the harness exposes |
 | `docs/config-catalog.md` / `.zh.md` | **210 KB** | Authoritative catalog of all configuration entries |
-| `docs/architecture.md` / `.zh.md` | 19 KB | Composition, core packages, the loop, seams, extension points |
+| `docs/architecture.md` / `.zh.md` | 19 KB | Composition, core packages, the loop, seams |
 
-## Cookbook (how-tos)
+### Cookbook
 
 | Document | Size |
 |---|---|
@@ -36,41 +73,33 @@ Nearly every document has a Chinese twin: replace `.md` with `.zh.md`.
 | `docs/cookbook/adding-a-session-format-version.zh.md` | 19 KB |
 | `docs/cookbook/adding-a-vendored-package.zh.md` | 4 KB |
 
-## Reference catalogs
+### Reference catalogs
 
-| Document | Size | What it covers |
-|---|---|---|
-| `docs/tool-catalog.md` / `.zh.md` | 98 KB | Every tool definition |
-| `docs/event-producer-consumer.md` / `.zh.md` | 29 KB | Event producers and consumers |
-| `docs/module-graph.md` / `.zh.md` | 123 KB | Module dependency graph |
-| `docs/persistence-catalog.md` / `.zh.md` | 342 KB | Persistence schema catalog |
-| `docs/persistence-schema.json` | 617 KB | Machine-readable persistence schema |
-| `docs/dependency-catalog.json` | 168 KB | Dependency catalog |
-| `docs/glossary.md` / `.zh.md` | 7 KB | Terminology |
+| Document | Size |
+|---|---|
+| `docs/tool-catalog.md` / `.zh.md` | 98 KB |
+| `docs/event-producer-consumer.md` / `.zh.md` | 29 KB |
+| `docs/module-graph.md` / `.zh.md` | 123 KB |
+| `docs/persistence-catalog.md` / `.zh.md` | 342 KB |
+| `docs/persistence-schema.json` | 617 KB |
+| `docs/dependency-catalog.json` | 168 KB |
+| `docs/glossary.md` / `.zh.md` | 7 KB |
 
-## Process & standards
+### Process & standards
 
-| Document | Size | What it covers |
-|---|---|---|
-| `docs/AGENTS.md` | 11 KB | The documentation standard: doc structure, tier taxonomy, writing rules |
-| `docs/development.md` / `.zh.md` | 19 KB | Development workflow |
-| `docs/testing.md` / `.zh.md` | 11 KB | Testing standard |
-| `docs/defensive-patterns.md` / `.zh.md` | 4 KB | Defensive coding patterns |
-| `docs/upgrade-guide/` | — | Version upgrade guides (e.g. `v0.1.7-rc.2`) |
-| `docs/subsystems/` | — | One reference page per subsystem, including generated Cordis API |
-| `docs/postmortem/` | — | Incident write-ups |
-| `docs/i18n/` | — | Translation conventions |
-| `docs/rescope.md` | 5 KB | Scope restructuring notes |
-| `docs/graph-atlas.md` | 1 KB | Graph atlas |
-| `docs/agent-lifecycle.md` / `.zh.md` | 6 KB | Agent lifecycle |
-| `docs/api-gateway.md` / `.zh.md` | 20 KB | API gateway |
-| `docs/deepseek-llm-api-wire-extensions.md` | 13 KB | LLM API wire extensions |
-| `docs/session-format-status.md` | 6 KB | Session format status |
-| `docs/tool-execution-pipeline.md` | 4 KB | Tool execution pipeline |
-| `docs/ui-radius.md` / `.zh.md` | 10 KB | UI radius / design tokens |
-| `docs/web-styling.md` / `.zh.md` | 7 KB | Web styling standard |
+| Document | Size |
+|---|---|
+| `docs/AGENTS.md` | 11 KB (documentation standard) |
+| `docs/development.md` / `.zh.md` | 19 KB |
+| `docs/testing.md` / `.zh.md` | 11 KB |
+| `docs/defensive-patterns.md` / `.zh.md` | 4 KB |
+| `docs/upgrade-guide/` | version upgrade guides |
+| `docs/subsystems/` | one reference page per subsystem |
+| `docs/postmortem/` | incident write-ups |
 
-## Official skills (design references)
+---
+
+## 3. Official skills (design references)
 
 `/.agents/skills/` contains 16 official skills:
 
@@ -82,7 +111,7 @@ dsh-pre-push-checks         dsh-prose-standard         dsh-speed-up-perf
 dsh-translate-docs          dsh-trim-cot-leakage       record-browser-gif
 ```
 
-## Built-in product skills (shipped with the desktop app)
+## 4. Built-in product skills (shipped with the desktop app)
 
 ```
 D:\DeepSeek-Harness\resources\runtime\office-skills\office-docx\SKILL.md
@@ -90,4 +119,4 @@ D:\DeepSeek-Harness\resources\runtime\office-skills\office-pptx\SKILL.md
 D:\DeepSeek-Harness\resources\runtime\office-skills\office-xlsx\SKILL.md
 ```
 
-These are the most reliable on-disk examples of the `SKILL.md` frontmatter contract.
+The most reliable on-disk examples of the `SKILL.md` frontmatter contract.
