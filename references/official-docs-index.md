@@ -7,6 +7,33 @@ Two sources, both official:
 
 ---
 
+## 0. Skill authoring - read these first
+
+If your task is about **writing or reviewing a skill** (not a plugin), these are the authoritative sources:
+
+| Document | Why it matters |
+|---|---|
+| **`docs/subsystems/skills.md` / `.zh.md`** | The official skill specification. Name format (`^[a-z0-9]+(?:-[a-z0-9]+)*$`), the six local discovery roots and their rank order, the exact frontmatter keys (`disable-model-invocation`, `user-invocable`), the `description` cap (`catalogDescriptionMaxLength`, default 500), and the `ctx.skills` registry surface. |
+| **`packages/preset/agent-preset/skills/`** | The official bundled skills - the best structural templates. Contains `cordis-plugin-development` (a thin SKILL.md plus `references/` and `templates/`), `cordis-composition-reference`, and `editing-cordis-compositions`. |
+| **`packages/skill/skill-filesystem/src/index.ts`** | The local provider: how directories and flat `.md` files are discovered and parsed. |
+| **`packages/skill/tool-skill/src/index.ts`** | The model-facing `skill` tool: what it returns and how `resourceBase` resolves relative files. |
+| **`scripts/verify-skill-invocation-metadata.ts`** | The repo's own validator for skill invocation metadata. |
+
+### The progressive-disclosure pattern
+
+The official `cordis-plugin-development` skill is about 8 KB and delegates everything else:
+
+```
+SKILL.md              thin router + a Task -> File table
+references/*.md       host-plugin / ui-plugin / mcp-bundle / practices / user-actions / verification
+templates/            copy-paste starting points
+```
+
+Its SKILL.md states that the table **is the complete list - do not enumerate the directory**. Follow this shape: keep the main file small and route.
+
+> NOTE: In the Desktop build the bundled skill directory lives inside `app.asar`. Only the Host process's own file reads can open it - shell commands (`ls`, `cat`, `cp`), the glob and search tools (they run a native ripgrep process), `node`, and pnpm all fail on it.
+
+---
 ## 1. Documentation site (read this first)
 
 Base: `https://deepseek-harness.github.io/deepseek-harness/`
@@ -36,6 +63,7 @@ Base: `https://deepseek-harness.github.io/deepseek-harness/`
 |---|---|
 | 快速开始 | `/guide/quickstart` |
 | 参考（子系统、配置、工具目录） | `/reference/` |
+| **Skills 子系统** | `/reference/subsystems/skills.md` |
 
 ---
 
@@ -101,7 +129,7 @@ Nearly every document has a Chinese twin: replace `.md` with `.zh.md`.
 
 ## 3. Official skills (design references)
 
-`/.agents/skills/` contains 16 official skills:
+`/.agents/skills/` contains 15 official skills:
 
 ```
 agent-experience            dsh-archive-agent-notes    dsh-ci-test-reliability

@@ -49,31 +49,37 @@ New-Item -ItemType Directory -Force -Path $dest | Out-Null
 Copy-Item .\SKILL.md $dest
 ```
 
-装好后重启 DSH，技能就会出现在可用列表里。
+**不需要重启 DSH。** 官方的本地 skill 提供方带文件监视（chokidar），会热刷新技能目录 —— 装好后新技能会自己出现在可用列表里。
 
-## 内容
+> 方式二只复制主文件，`references/` 里的参考页不会被带上；建议用方式一。
+
+## 内容结构
+
+主文件是**薄路由**（约 18 KB），详细内容按需加载：
 
 | 文件 | 内容 |
 |---|---|
-| [`SKILL.md`](SKILL.md) | **技能本体**（692 行）。官方契约 + 能力地图 + 生态地图 + 六大坑 + 验证清单 + 发布规范 |
-| [`references/official-docs-index.md`](references/official-docs-index.md) | **官方文档地图**：文档站 + 仓库 docs 的完整索引 |
+| [`SKILL.md`](SKILL.md) | **技能本体**：内容来源分级 · 路由表 · 权威来源 · 插件契约 · Skill 格式 · 验证清单 · 发布 · 排查 · 汇报原则 |
+| [`references/capability-map.md`](references/capability-map.md) | `ctx` 键总表 + 「新行为归属」映射表 + seam 三角色 |
+| [`references/events.md`](references/events.md) | 五种分发模式 · 三大事件域 · Claude Code 术语对照 · `hooks.json` 桥 |
+| [`references/lifecycle.md`](references/lifecycle.md) | Fiber 状态机 · 自动清理 · dispose · HMR |
+| [`references/pitfalls.md`](references/pitfalls.md) | 六个必踩的坑（含真实崩溃日志） |
+| [`references/ecosystem.md`](references/ecosystem.md) | MCP / hooks 桥 / 记忆 / 输出样式 / 插件市场 + 官方包谱系 |
+| [`references/official-docs-index.md`](references/official-docs-index.md) | 官方文档地图 + skill 规范 + 官方 skill 样板 |
 
-### SKILL.md 覆盖的内容
+> 这个「薄主文件 + 参考页」的分法，是照着**官方随包 skill `cordis-plugin-development`** 的结构做的（它约 8 KB + `references/` + `templates/`）。
 
-| # | 章节 | 要点 |
-|---|---|---|
-| 0 | **权威来源** | 官方文档站（含每页 `.md` 取法）+ 仓库 docs + 本机实物 |
-| 1 | **插件契约** | 三种插件形态 · **组合包 vs profile** · 组合包 manifest · **四层加载顺序** · cordis 五概念 · **`Config` + Schemastery** |
-| 1.7 | **能力地图 ⭐** | **`ctx` 键总表** · **「新行为归属」20 条映射表** · seam 三角色 |
-| 2 | **钩子 / 事件** | 五种分发模式精确语义 · waterfall 必须调 `next()` · TS 声明合并 · **事件三大域** · ⚠️ 会话事件 vs Cordis 事件 · **Claude Code 术语对照表** |
-| 3 | **生命周期** | **Fiber 状态机**（PENDING/LOADING/ACTIVE/FAILED/…）· 自动清理 · ⚠️ 处置器逆序但并发 · dispose · HMR |
-| 4 | **Skill 格式** | `SKILL.md` frontmatter 与 `description` 触发条件写法 |
-| 5 | **⚠️ 六大坑** | 逐条附真实崩溃日志与修复 |
-| 6 | **本地验证清单** | 可直接复制的 PowerShell + `dsh --dump-config` |
-| 7 | **发布 / 上架** | 仓库结构 · 自检清单 · Topics · git 推送的环境坑 |
-| 8 | **排查流程** | 桌面端打不开时的 7 步定位 |
-| 9 | **汇报原则** | 必须给证据，不能只说"应该好了" |
-| 10 | **生态地图** | MCP（官方 `dsh-mcp-client`）/ 记忆 / 技能管理 / Git 凭据 / 多代理协作 |
+## 内容来源分级
+
+本技能**不发明规则**，全文区分三类来源：
+
+| 标记 | 含义 |
+|---|---|
+| 🟢 **官方** | 出自官方文档站 / 官方仓库 / 官方随附实物，可找到原文 |
+| 🟡 **实测** | 本机真实事故中验证出的**事实**，有崩溃日志佐证，但**官方未明文规定** |
+| 🔵 **社区** | 社区插件，名字已在 npm 核实，但**非官方** |
+
+⚠️ **不要把 🟡 / 🔵 当成官方规定引用。**
 
 ## 六大致命坑
 
@@ -86,7 +92,7 @@ Copy-Item .\SKILL.md $dest
 | 5 | 改配置时 DSH 还在运行 | 改动被并发覆盖 |
 | 6 | 从 git 安装却没管构建 | 包到手没有 `lib/` → 加载失败 |
 
-每一条在 `SKILL.md` 里都有**真实事故记录、崩溃日志原文和修复方法**。
+每一条在 `references/pitfalls.md` 里都有**真实事故记录、崩溃日志原文和修复方法**。
 
 ## 适用对象
 
@@ -96,20 +102,17 @@ Copy-Item .\SKILL.md $dest
 
 ## 依据的官方来源
 
-本技能内容对齐以下官方来源：
-
 - 官方文档站：<https://deepseek-harness.github.io/deepseek-harness/>
 - 官方仓库：<https://github.com/deepseek-ai/deepseek-harness>
+- **官方 skill 规范**：`docs/subsystems/skills.md`
+- **官方随包 skill 样板**：`packages/preset/agent-preset/skills/`
 - 本机随附的官方 skill 实物：`resources/runtime/office-skills/`
 
 ## 兼容性
 
-| DSH 版本 | 状态 |
-|---|---|
-| `0.2.0-rc.2` | ✅ 已验证（全部六个坑都在该版本上复现并修复） |
-| `0.1.7-rc.2` | ✅ 适用（版本白名单一节即来自该版本升级过程） |
-
 > ⚠️ 本技能是**文档型技能**，不含任何可执行插件代码，因此不受版本白名单约束 —— 任何 DSH 版本都能安全加载。
+
+其中的「坑」来自本机 DSH 桌面端上真实复现的启动故障，修复后已验证。**具体版本号与 npm 上的发行版本未必一一对应**，请以现象和崩溃日志为准，而不是版本号。
 
 ## 贡献
 
