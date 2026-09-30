@@ -1,6 +1,6 @@
 ---
 name: dsh-plugin-dev
-description: 制作、修改或审查 DeepSeek Harness (DSH) 插件 / 钩子 / Skill 时必读。涵盖官方 cordis bundle 契约、组合包与 profile 两种 manifest、四层加载顺序、Fiber 生命周期、事件分发模式（emit/waterfall/parallel/serial/bail）、插件配置 schema、SKILL.md 格式、版本兼容白名单纪律，以及影子包 / 依赖悬空 / BOM / profile 并发写入等实战避坑与本地验证流程。当用户要求开发 DSH 插件、加钩子、写 skill、打包发布插件，或排查插件显示「异常 / 未运行 / 启动失败 / 桌面端打不开」时使用。
+description: 制作、修改或审查 DeepSeek Harness (DSH) 插件 / 钩子 / Skill 时必读。涵盖官方 cordis bundle 契约、组合包与 profile 两种 manifest、四层加载顺序、Fiber 生命周期、ctx 能力地图与「新行为归属」映射表、事件三大域与五种分发模式（emit/waterfall/parallel/serial/bail）、插件配置 schema、SKILL.md 格式、MCP/子代理/记忆等扩展生态、版本兼容白名单纪律，以及影子包 / 依赖悬空 / BOM / profile 并发写入等实战避坑与本地验证流程。当用户要求开发 DSH 插件、加钩子、挂扩展点、写 skill、打包发布插件，或排查插件显示「异常 / 未运行 / 启动失败 / 桌面端打不开」时使用。
 ---
 
 # DSH 插件 / Skill 开发规范
@@ -219,6 +219,56 @@ export function apply(ctx: Context, config: Config) {
 
 ---
 
+### 1.7 能力地图：`ctx` 键与服务 ⭐
+
+**"我要加的功能该挂在哪？"** —— 官方给出了权威答案。核心包向 Cordis 树贡献能力，各自占据一个稳定的 `ctx` 键：
+
+| 包 | 职责 | `ctx` 键 |
+|---|---|---|
+| `core/session` | 仅追加的 `SessionEvent` 日志和内存存储 | `ctx.sessions` |
+| `core/system-prompt` | 提示词片段与工具 schema 的组装 | `ctx.systemPrompt` |
+| `core/tools` | 作用域化的工具注册表和带把关的执行流水线 | `ctx.tools` |
+| `core/agent` | `Agent` 接口、活跃 agent 注册表和 `agent/*` 事件 | `ctx.agents` |
+| `core/agent-loop` | 实现该接口的默认驱动器 | `ctx.agentLoop` |
+| `core/scope` | 按 agent 划分作用域的注册原语 | 库，无 ctx 键 |
+| `llm/llm` | 消息与流式词汇表，以及适配器 seam | `ctx.llm` |
+| `webhook/webhook` | 已认证 delivery 的分派和 Workspace Session 创建 | `ctx.webhookRuntime` |
+
+### 新行为的归属位置（官方映射表）
+
+| 目标 | 机制 |
+|---|---|
+| 添加模型提供方 | 在 `ctx.llm` 上注册其适配器 |
+| 添加面向模型的能力 | 在 `ctx.tools` 上注册；其 schema 加入提示词组装 |
+| 让某个会话拥有不同的能力集合 | 组装一个 agent preset；其中的服务行需要 `isolate` realm |
+| 添加 shell 执行 | 注册 `ctx.shell` 后端；本地后端经 `ctx.subprocess` spawn 进程 |
+| 添加持久化终端执行 | 注册 `ctx.terminals` 后端和 `dsh-tool-terminal` |
+| 添加用户命令 | 在 `ctx.commands` 上注册；无需模型轮次即可分派 |
+| 管理后台任务 | 在 `ctx.jobs` 上注册；`job_*` 工具读取或停止任务 |
+| 从外部 webhook 启动 Session | 在 `ctx.webhookRuntime` 上注册可信规则，并挂载提供方适配器 |
+| 添加文件系统访问或策略 | 注册 `ctx.fs` 提供方，或监听 `fs/*` 事件 |
+| 限制所启动的进程 | 使用 `ctx.sandbox` 后端；消费方在启动进程前包装 argv |
+| **拦截请求、工具或轮次** | 使用相应的 `agent/*` 或 `tools/*` 事件；`agent/turn-stopping` 会停止轮次 |
+| **添加模型可见上下文** | 调用 `agent.inject()`；它会落到下一次获准的请求中 |
+| 添加 UI 或编辑器集成 | 驱动 `ctx.agents` 并从 `session/event` 渲染 |
+| 添加 Web Client Chat 节点 | 注册 `ConversationNodeDefinition` + keyed renderer |
+| 添加持久会话状态 | 扩展 `SessionEventMap`；从日志渲染和回放 |
+| 生成会话标题 | 注册唯一的 `ctx.sessionTitle` 提供方 |
+| 管理同会话目标 | 使用 `ctx.goals`；通过 `agent/*` 续跑 |
+| 在轮次边界 fork 会话 | `ctx.agents.create({ sessionId, seed, meta: { parentSession, seedLength } })` |
+| 在新后端存储会话 | 基于共享的句柄脚手架实现 `SessionPersistence`（`create`/`open`/`stat`/`list`/`export`） |
+| 将注册项限定到单个 agent | 使用该 agent 的 `agent.ctx` |
+
+### seam（能力接缝）三角色
+
+一项可替换能力 = **Service Definition**（声明接口）+ **Service Provider**（实现）+ **Consumer**（使用它，通常是面向模型的工具）。一个包可以合并承担多个角色，但**单一角色本身不是 seam** —— 添加一项能力意味着把三者一并设计。
+
+> **替换一个提供方就能改变整个产品。** 文件系统与进程提供方共享同一个执行世界，所以把它们指向远程沙箱，**Bash、PTY 和 LSP 会一并搬过去**，无需提供方专用 fork。subagent 提供方在同一接口之后也千差万别 —— 从新建一个子 agent，到把一个轮次委派给另一个产品。
+
+完整能力图见官方 `docs/capability-seams.zh.md`（61 KB）。
+
+---
+
 ## 2. 钩子 / 事件
 
 ### 2.1 五种分发模式
@@ -301,6 +351,54 @@ export function apply(ctx: Context) {
   })
 }
 ```
+
+### 2.6 三大事件域 ⭐
+
+**事件就是扩展点，而选对事件域是大多数改动的第一个决定。**
+
+| 事件域 | 形态 | 何时用 |
+|---|---|---|
+| **会话事件** | 追加到日志、并通过 `session/event` 广播的**持久事实** | 某个事实必须在重新加载后仍然存在 |
+| **Agent 事件**（`agent/*`） | 携带活跃 `Agent`：inbox、步骤、状态、请求、验证、续跑 | 观察或**拦截进行中**的工作 |
+| **能力事件**（`fs/*`、`tools/*`、`telemetry/*`） | 向某个 seam 附加策略与适配器 | 无需导入循环即可扩展能力 |
+
+⚠️ **`turn/*`、`step/*`、`system/message`、`user/message`、`assistant/message`、`assistant/attempt`、`tool/*` 是持久会话事件；其余才是实时扩展点。**
+
+**必须调用 `next()` 的 waterfall 事件**：
+`agent/pre-step` · `agent/request` · `llm/stream` · `tools/pre-execute` · `tools/execute` · `tools/post-execute`
+
+**serial 事件（没有 `next()`）**：`agent/turn-stopping`
+
+### 2.7 ⚠️ 别把 Claude Code 的术语搬过来
+
+搜到的"Agent 扩展机制"资料大多是 **Claude Code** 语境。对照如下：
+
+| Claude Code 概念 | DSH 里的对应 |
+|---|---|
+| `UserPromptSubmit` hook | → **`agent/pre-step`**（waterfall，可改写或拒绝已领取消息） |
+| PreToolUse / PostToolUse | → `tools/pre-execute` / `tools/post-execute` |
+| **hooks.json（整个配置文件）** | ✅ **官方有桥接插件**：`@deepseek-ai/dsh-hooks-claude-code` |
+| Output Styles | ⚠️ **DSH 内核无此概念**；社区插件 **`dsh-output-styles`** 提供等价能力 |
+| Knowledge | ❌ **无此概念** —— 用 AGENTS.md / skill / `ctx.systemPrompt` 片段 |
+| MCP server | ✅ 有，经官方 **`@deepseek-ai/dsh-mcp-client`**（把 MCP 工具注册到 `ctx.tools`） |
+| Subagent | ✅ 有，且是 **seam**（见 `docs/subsystems/subagent.md`） |
+
+#### 🔌 hooks 的两个层次 ⭐
+
+| 层次 | 怎么做 | 适用 |
+|---|---|---|
+| **底层** | 在插件里 `ctx.on('agent/pre-step', …)` 注册 Cordis 事件 | 要写代码、要深度控制 |
+| **声明式** | 装官方 `@deepseek-ai/dsh-hooks-claude-code`，用 Claude Code 格式的 `hooks.json` 配置 | **不写插件代码**，直接复用 Claude Code 的 hook 生态 |
+
+官方 hooks 家族（源：`packages/hooks/`）：
+
+| 包 | 作用 |
+|---|---|
+| `@deepseek-ai/dsh-hooks-claude-code` | 跑 **Claude Code** 的 `hooks.json` / settings hook 配置 |
+| `@deepseek-ai/dsh-hooks-codex` | 跑 **Codex** 的 `hooks.json` |
+| `@deepseek-ai/dsh-hook-protocol` | 共享 wire protocol：matcher 引擎、stdin/exit-code/stdout 编解码、多 hook 合并、**`hook/*` 会话事件** |
+
+> 💡 **一句话**：钩子的**底层机制始终是 Cordis 事件**（`ctx.on`）；但**不想写代码时，官方提供了 Claude Code / Codex 的 `hooks.json` 兼容桥** —— 它把外部 hook 配置映射到 DSH 的拦截 seam 上。
 
 ---
 
@@ -621,3 +719,55 @@ dsh-my-plugin/
 - 进程存活时长
 
 用户曾因"报告启动成功但实际没起来"而多折腾一轮 —— **验证不到位的代价很高**。
+
+---
+
+## 10. 生态地图：装什么插件解决什么问题
+
+**这一节是给"用户"看的；写插件的人需要的是 §1.7 的 `ctx` 键。**
+
+| 需求 | 方案 |
+|---|---|
+| **MCP 服务器** | 官方 **`@deepseek-ai/dsh-mcp-client`**（连接 MCP 服务器并把其工具注册到 `ctx.tools`）· 官方 `@deepseek-ai/dsh-mcp-resources`（scoped 资源读写） |
+| MCP 管理界面 | `dsh-mcp`（管理 UI + tool search 热注入，工具列表不撑爆上下文）· `@xxxyz/dsh-mcp-manager` · `dsh-mcp-market`（MCP 市场）· `dsh-mcp-setting`（设置页改 patch） |
+| **Hooks（不写代码）** | 官方 **`@deepseek-ai/dsh-hooks-claude-code`**（跑 Claude Code 的 `hooks.json`）· `@deepseek-ai/dsh-hooks-codex`（Codex 格式）· 底座 `@deepseek-ai/dsh-hook-protocol` |
+| **记忆 / 跨会话持久化** | `@openviking/dsh-memory-plugin` · `@furongjun1999/dsh-memory` · `dsh-mnemon` · `dsh-mnemosyne` · OpenViking |
+| **输出样式** | `dsh-output-styles`（Claude Code outputStyles 等价，运行时切换）· `@auggieteo/dsh-output-styles`（设置页管理） |
+| **技能管理** | `@michengai/dsh-skills-manager`（本地技能库 + 从 Git 仓库安装） |
+| **Git 凭据 / 推送策略** | `dsh-git-forge`（账号库 + 按项目授权 + push 拦截） |
+| **搜索** | `dsh-free-search` |
+| **交互式 UI** | `@changfenhuang/dsh-genui`（模型在回复里内联渲染图表/表单） |
+| **插件市场** | `dshmarket`（可视化市场，一键装社区插件） |
+| **多代理协作** | 实验性 **Agent Teams** —— `ctx.agentTeams` 上公开发布、显式启用的协作 seam，在可继续 subagent 之上提供**持久 roster、任务板和 mailbox** |
+| **子代理** | subagent seam（`docs/subsystems/subagent.md`） |
+
+### 官方包谱系（`@deepseek-ai/*`，按 seam 划分）
+
+写插件时**不要**把下面这些写进 `dependencies` —— 它们由宿主提供（见 §5.2）：
+
+| 能力 | 官方包 | `ctx` 键 |
+|---|---|---|
+| 工具注册表 | `dsh-tools` | `ctx.tools` |
+| 会话存储 | `dsh-session` | `ctx.sessions` |
+| 模型适配 | `dsh-llm` | `ctx.llm` |
+| Agent / 循环 | `dsh-agent`、`dsh-agent-loop` | `ctx.agents` |
+| 子进程 | `dsh-subprocess` + `dsh-subprocess-local`、`dsh-native-command` | `ctx.subprocess` |
+| Shell 执行 | `dsh-bash-local`、`dsh-pwsh-local` | `ctx.shell` |
+| 文件系统 | `dsh-fs-local`、`dsh-tool-fs` | `ctx.fs` |
+| Web 访问 | `dsh-web`（search/fetch 提供方注册表） | `ctx.web` |
+| MCP | `dsh-mcp-client`、`dsh-mcp-resources` | 注册到 `ctx.tools` |
+| Hooks | `dsh-hooks-claude-code`、`dsh-hooks-codex`、`dsh-hook-protocol` | 拦截 seam |
+| 插件自省 | `dsh-tool-cordis`（检视实时运行时、挂载/卸载模型写的插件） | — |
+| CLI | `@deepseek-ai/dsh`（`dsh plugin` / `--profile` / `--dump-config`） | — |
+
+### 关于 MCP 与插件的关系
+
+- **MCP** 是连接**外部独立进程**（数据库、浏览器守护进程、公司内部 API）的通用协议
+- **插件**是 DSH 的**原生扩展单元**，运行在框架内部，能实现更深度的集成（读会话日志、注入上下文、钩住 UI）
+- DSH 的策略是 **「插件优先，MCP 作为适配层」** —— 官方就是用 `dsh-mcp-client` 这个**插件**去接入 MCP 的
+
+### 关于 Subagent / Workflow
+
+- **Subagent** 在**隔离的上下文**中独立运行自己的循环，避免污染主对话上下文
+- **Workflow** 用脚本编排多个子代理并行/串行执行，最后汇总为一个结果
+- 二者都是 **agent 侧能力**（不是插件作者要实现的机制），由 `subagent` / `workflow` 工具暴露

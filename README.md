@@ -55,7 +55,7 @@ Copy-Item .\SKILL.md $dest
 
 | 文件 | 内容 |
 |---|---|
-| [`SKILL.md`](SKILL.md) | **技能本体**（529 行）。官方契约 + 六大坑 + 验证清单 + 发布规范 |
+| [`SKILL.md`](SKILL.md) | **技能本体**（662 行）。官方契约 + 能力地图 + 生态地图 + 六大坑 + 验证清单 + 发布规范 |
 | [`references/official-docs-index.md`](references/official-docs-index.md) | **官方文档地图**：文档站 + 仓库 docs 的完整索引 |
 
 ### SKILL.md 覆盖的内容
@@ -64,7 +64,8 @@ Copy-Item .\SKILL.md $dest
 |---|---|---|
 | 0 | **权威来源** | 官方文档站（含每页 `.md` 取法）+ 仓库 docs + 本机实物 |
 | 1 | **插件契约** | 三种插件形态 · **组合包 vs profile** · 组合包 manifest · **四层加载顺序** · cordis 五概念 · **`Config` + Schemastery** |
-| 2 | **钩子 / 事件** | 五种分发模式精确语义 · waterfall 必须调 `next()` · TS 声明合并 · **`namespace/action` 命名与归属** · ⚠️ 会话事件 vs Cordis 事件 |
+| 1.7 | **能力地图 ⭐** | **`ctx` 键总表** · **「新行为归属」20 条映射表** · seam 三角色 |
+| 2 | **钩子 / 事件** | 五种分发模式精确语义 · waterfall 必须调 `next()` · TS 声明合并 · **事件三大域** · ⚠️ 会话事件 vs Cordis 事件 · **Claude Code 术语对照表** |
 | 3 | **生命周期** | **Fiber 状态机**（PENDING/LOADING/ACTIVE/FAILED/…）· 自动清理 · ⚠️ 处置器逆序但并发 · dispose · HMR |
 | 4 | **Skill 格式** | `SKILL.md` frontmatter 与 `description` 触发条件写法 |
 | 5 | **⚠️ 六大坑** | 逐条附真实崩溃日志与修复 |
@@ -72,6 +73,7 @@ Copy-Item .\SKILL.md $dest
 | 7 | **发布 / 上架** | 仓库结构 · 自检清单 · Topics · git 推送的环境坑 |
 | 8 | **排查流程** | 桌面端打不开时的 7 步定位 |
 | 9 | **汇报原则** | 必须给证据，不能只说"应该好了" |
+| 10 | **生态地图** | MCP（官方 `dsh-mcp-client`）/ 记忆 / 技能管理 / Git 凭据 / 多代理协作 |
 
 ## 六大致命坑
 

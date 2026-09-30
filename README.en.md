@@ -55,7 +55,7 @@ Restart DSH afterwards and the skill shows up in the available list.
 
 | File | Purpose |
 |---|---|
-| [`SKILL.md`](SKILL.md) | **The skill itself** (529 lines): official contracts + six pitfalls + verification checklist + release standard |
+| [`SKILL.md`](SKILL.md) | **The skill itself** (662 lines): official contracts + capability map + ecosystem map + six pitfalls + verification checklist + release standard |
 | [`references/official-docs-index.md`](references/official-docs-index.md) | **Official docs map**: the docs site plus the full repo `docs/` index |
 
 ### What SKILL.md covers
@@ -63,8 +63,8 @@ Restart DSH afterwards and the skill shows up in the available list.
 | # | Section | Highlights |
 |---|---|---|
 | 0 | **Authoritative sources** | Official docs site (and the `.md` trick), repo `docs/`, on-disk examples |
-| 1 | **Plugin contract** | Three plugin forms · **bundle vs profile** · bundle manifest · **four-layer load order** · the five cordis concepts · **`Config` + Schemastery** |
-| 2 | **Hooks and events** | Exact semantics of all five dispatch modes · waterfall must call `next()` · TS declaration merging · **`namespace/action` naming** · ⚠️ session events vs Cordis events |
+| 1 | **Plugin contract** | Three plugin forms · **bundle vs profile** · bundle manifest · **four-layer load order** · the five cordis concepts · **`Config` + Schemastery** · the **`ctx` key / "where new behavior belongs" map** |
+| 2 | **Hooks and events** | Exact semantics of all five dispatch modes · waterfall must call `next()` · TS declaration merging · **the three event domains** · ⚠️ session events vs Cordis events · **a Claude Code term crosswalk** · the official **`hooks.json` bridge** |
 | 3 | **Lifecycle** | The **Fiber state machine** (PENDING/LOADING/ACTIVE/FAILED/…) · auto-cleanup · ⚠️ disposers run reversed but concurrently · dispose · HMR |
 | 4 | **Skill format** | `SKILL.md` frontmatter and how to write a triggerable `description` |
 | 5 | **⚠️ Six pitfalls** | Each with the real crash log and the fix |
@@ -72,6 +72,7 @@ Restart DSH afterwards and the skill shows up in the available list.
 | 7 | **Release / publishing** | Repo layout · pre-flight checklist · topics · git push environment traps |
 | 8 | **Triage flow** | 7 steps for a desktop app that won't start |
 | 9 | **Reporting standard** | Always show evidence, never just "should be fixed" |
+| 10 | **Ecosystem map** | MCP (official `dsh-mcp-client`) · official hooks bridges · memory · output styles · skill management · the `@deepseek-ai/*` seam package lineage |
 
 ## The six fatal pitfalls
 
