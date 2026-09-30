@@ -1,0 +1,18 @@
+# Normalize line endings: always store LF in the repository
+* text=auto eol=lf
+
+# Explicit types
+*.md   text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+
+# Windows-only files keep CRLF
+*.ps1  text eol=crlf
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+
+# Binary
+*.png  binary
+*.jpg  binary
+*.ico  binary
