@@ -55,7 +55,7 @@ Restart DSH afterwards and the skill shows up in the available list.
 
 | File | Purpose |
 |---|---|
-| [`SKILL.md`](SKILL.md) | **The skill itself** (662 lines): official contracts + capability map + ecosystem map + six pitfalls + verification checklist + release standard |
+| [`SKILL.md`](SKILL.md) | **The skill itself** (693 lines): official contracts + capability map + ecosystem map + six pitfalls + verification checklist + release standard |
 | [`references/official-docs-index.md`](references/official-docs-index.md) | **Official docs map**: the docs site plus the full repo `docs/` index |
 
 ### What SKILL.md covers
