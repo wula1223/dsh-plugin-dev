@@ -7,7 +7,7 @@ description: Use when building, modifying, reviewing, or debugging a DeepSeek Ha
 
 DeepSeek Harness（DSH）的设计哲学是 **「Everything is a Plugin」**。插件、工具、UI、LLM 适配器全部走同一套 cordis 插件模型。
 
-**动手前先读本文，尤其第 5 节（六个必踩的坑）—— 它们会直接搞崩用户的桌面端。**
+**动手前先读本文，尤其第 5 节（九个必踩的坑）—— 它们会直接搞崩用户的桌面端。**
 
 ---
 
@@ -338,7 +338,11 @@ if ($after -gt $before) {
 | `pending (waiting for service: xxx)` | `inject` 依赖悬空（查 5.3，对应 Fiber PENDING） |
 | `Unexpected token ''` | BOM 问题（查 5.4） |
 | `apply` 抛异常的堆栈 | Fiber FAILED（查插件自身代码） |
-| `duplicate factory registration for "xxx"` | 插件被加载两次，重启通常可清 |
+| `duplicate factory registration for "xxx"` | 客户端工厂注册两次（查 **5.7**）—— 改配置通常无效，停用该插件 |
+| `import failed (see console for the import error)` | 主机侧导入失败，**真正的错误在渲染器控制台**，去日志末尾找 |
+| `webserver: duplicate exact route "/xxx"` | 升级回滚后的半安装状态（查 **5.8**）—— 先确认 `node_modules` 里实际版本 |
+| `no loader entry matched` / `plugin kept off: xxx` | market 的 `disabled` / `brokenPlugins` 拦截（查 **5.9**） |
+| `update-rollback` / `restoration ... could not be verified` | 新版有 bug，升级失败已回滚 —— **不要重试**（查 5.1 表格） |
 
 ### 6.6 安装 / 升级 / 移除插件
 
@@ -405,12 +409,14 @@ dsh-my-plugin/
 ## 5. 排查流程（插件异常 / 桌面端打不开）
 
 1. **读最新崩溃日志**（第 6.5 节表格对照）
-2. **比对插件白名单与宿主版本**（5.1）
+2. **比对插件白名单与宿主版本**（5.1）—— 先分清是「异常」还是「更新失败」，两者处置相反
 3. **查影子包**（5.2 / 6.2）
 4. **查 `inject` 依赖是否悬空**（5.3，对照 Fiber PENDING）
 5. **查 BOM**（5.4）
-6. **看 `.dsh-market\log.ndjson`** 找 `install-compat` 警告与 toggle 记录
-7. 全都不行 → 用 DSH 自带的 **「禁用第三方插件、备份 profile patch 并重启」** 安全模式恢复
+6. **查 `.dsh-market\state.json` 的 `disabled` 与 `brokenPlugins`**（5.9）——「装了但加载不了」多半卡在这
+7. **看 `.dsh-market\log.ndjson`** 找 `install-compat` 警告、`toggle`、`update-rollback` 记录（5.8）
+8. **确认进程真的重启过** —— 改了配置没完全退出，界面仍显示旧状态，别误判为「改了没用」
+9. 全都不行 → 用 DSH 自带的 **「禁用第三方插件、备份 profile patch 并重启」** 安全模式恢复
 
 ---
 

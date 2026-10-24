@@ -63,7 +63,7 @@ The main file is a **thin router** (~18 KB); detail loads on demand:
 | [`references/capability-map.md`](references/capability-map.md) | The `ctx` key table + the "where new behavior belongs" map + the three seam roles |
 | [`references/events.md`](references/events.md) | The five dispatch modes, the three event domains, a Claude Code term crosswalk, the `hooks.json` bridge |
 | [`references/lifecycle.md`](references/lifecycle.md) | The Fiber state machine, auto-cleanup, dispose, HMR |
-| [`references/pitfalls.md`](references/pitfalls.md) | The six pitfalls, each with the real crash log |
+| [`references/pitfalls.md`](references/pitfalls.md) | **Nine pitfalls**, grouped by failure mode, each with the real crash log and a diagnostic script |
 | [`references/ecosystem.md`](references/ecosystem.md) | MCP, hooks bridges, memory, output styles, plugin market, and the official package lineage |
 | [`references/official-docs-index.md`](references/official-docs-index.md) | The official docs map, the skill specification, and the official skill templates |
 
@@ -81,18 +81,25 @@ This skill **does not invent rules**. Everything is graded by source:
 
 Do not cite 🟡 or 🔵 material as if it were an official rule.
 
-## The six fatal pitfalls
+## The nine pitfalls
 
-| # | Pitfall | Consequence |
+**Each one is written as a failure mode, not tied to a specific plugin** - match the symptom, then apply the decision rule.
+
+| # | Failure mode | Symptom / correct action |
 |---|---|---|
-| 1 | Version allowlist not bumped with the host | Plugin shows as **error** |
-| 2 | Stateful core package in `dependencies` | Shadow package masks the host - **desktop won't launch** |
-| 3 | `inject`ed service has no provider | Plugin stays **PENDING** - **startup fails** |
-| 4 | JSON written with a BOM | `JSON.parse` fails - **boot crash** |
-| 5 | Editing config while DSH is running | Changes overwritten |
-| 6 | Git install with no build handling | Package arrives without `lib/` - **load fails** |
+| 5.1 | **Version allowlist falls behind a host upgrade** | Shows as "error" → **upgrade**. Shows "update failed" + `update-rollback` → **do not upgrade**, the new release is broken |
+| 5.2 | **Stateful core package in `dependencies`** | Shadow package masks the host → **desktop won't launch** |
+| 5.3 | **`inject`ed service has no provider** | Plugin stays **PENDING**; grouped plugins must be enabled together |
+| 5.4 | **JSON written with a BOM** | `Unexpected token ''` → `JSON.parse` fails |
+| 5.5 | **Profile gets rewritten concurrently** | Edits rolled back; includes `.dsh-market\state.json` |
+| 5.6 | **Git install with no build handling** | No `lib/` in the package; needs `prepare` + `allowBuilds` |
+| 5.7 | **Duplicate client factory registration** | `duplicate factory registration` → editing config usually **does not help**; disable the plugin |
+| 5.8 | **Duplicate route registration** | `duplicate exact route` → half-installed state after a rolled-back upgrade; trust the `node_modules` version |
+| 5.9 | **market double-block** | `plugin kept off` → clear **both** `disabled[]` and `brokenPlugins{}` |
 
-Each one includes the **real incident, the raw crash log, and the fix** in `references/pitfalls.md`.
+**The most common misread:** "error" and "update failed" both look like "this plugin is broken", but the conclusions are opposite - the first is fixed by upgrading, the second gets worse. See the 5.1 decision table in `references/pitfalls.md`.
+
+Each entry includes the **failure mechanism, a diagnostic script, the raw crash log, and the fix**.
 
 ## Who it's for
 
@@ -122,6 +129,8 @@ Found a new pitfall? PRs welcome. Please include:
 2. Trigger conditions (DSH version / plugin version / steps)
 3. Root-cause analysis
 4. The fix
+
+> Please describe the **failure mode** ("duplicate client factory registration"), not just "plugin X crashed" - the former is reusable, the latter expires in two months.
 
 ## License
 

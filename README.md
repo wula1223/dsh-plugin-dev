@@ -63,7 +63,7 @@ Copy-Item .\SKILL.md $dest
 | [`references/capability-map.md`](references/capability-map.md) | `ctx` 键总表 + 「新行为归属」映射表 + seam 三角色 |
 | [`references/events.md`](references/events.md) | 五种分发模式 · 三大事件域 · Claude Code 术语对照 · `hooks.json` 桥 |
 | [`references/lifecycle.md`](references/lifecycle.md) | Fiber 状态机 · 自动清理 · dispose · HMR |
-| [`references/pitfalls.md`](references/pitfalls.md) | 六个必踩的坑（含真实崩溃日志） |
+| [`references/pitfalls.md`](references/pitfalls.md) | **九个必踩的坑**（按故障模式归类，含真实崩溃日志与排查脚本） |
 | [`references/ecosystem.md`](references/ecosystem.md) | MCP / hooks 桥 / 记忆 / 输出样式 / 插件市场 + 官方包谱系 |
 | [`references/official-docs-index.md`](references/official-docs-index.md) | 官方文档地图 + skill 规范 + 官方 skill 样板 |
 
@@ -81,18 +81,25 @@ Copy-Item .\SKILL.md $dest
 
 ⚠️ **不要把 🟡 / 🔵 当成官方规定引用。**
 
-## 六大致命坑
+## 九大坑
 
-| # | 坑 | 后果 |
+**每条按「故障模式」写，不绑具体插件** —— 遇到同类现象直接套用判断依据。
+
+| # | 故障模式 | 关键症状 / 处置 |
 |---|---|---|
-| 1 | 版本白名单没跟上宿主升级 | 插件显示「异常」 |
-| 2 | 有状态核心包写进 `dependencies` | 影子包遮蔽宿主 → **桌面端打不开** |
-| 3 | `inject` 的服务没有提供者 | 插件永远 **PENDING** → 启动失败 |
-| 4 | JSON 带 BOM 头 | `JSON.parse` 失败 → 启动崩溃 |
-| 5 | 改配置时 DSH 还在运行 | 改动被并发覆盖 |
-| 6 | 从 git 安装却没管构建 | 包到手没有 `lib/` → 加载失败 |
+| 5.1 | **版本白名单没跟上宿主升级** | 显示「异常」→ **该升级**；显示「更新失败」+ `update-rollback` → **别升，新版有 bug** |
+| 5.2 | **有状态核心包写进 `dependencies`** | 影子包遮蔽宿主 → **桌面端打不开** |
+| 5.3 | **`inject` 的服务没有提供者** | 插件永远 **PENDING** → 成套插件必须成组启用 |
+| 5.4 | **JSON 带 BOM 头** | `Unexpected token ''` → `JSON.parse` 失败 |
+| 5.5 | **profile 被并发改写** | 改动被回滚；含 `.dsh-market\state.json` |
+| 5.6 | **从 git 安装却没管构建** | 包到手没有 `lib/` → 加载失败；需 `prepare` + `allowBuilds` |
+| 5.7 | **客户端工厂重复注册** | `duplicate factory registration` → 改配置通常**无效**，只能停用 |
+| 5.8 | **路由重复注册** | `duplicate exact route` → 升级回滚后的半安装态；以 `node_modules` 版本为准 |
+| 5.9 | **market 的双重拦截** | `plugin kept off` → `disabled[]` 与 `brokenPlugins{}` **两处都要清** |
 
-每一条在 `references/pitfalls.md` 里都有**真实事故记录、崩溃日志原文和修复方法**。
+⚠️ **最容易踩的误判：**「异常」和「更新失败」外观都是"这个插件有问题"，**结论完全相反** —— 前者升级就好了，后者越升越糟。判断依据见 `references/pitfalls.md` 的 5.1 对照表。
+
+每条在 `references/pitfalls.md` 里都有**故障成因、判断脚本、崩溃日志原文和修复方法**。
 
 ## 适用对象
 
@@ -122,6 +129,8 @@ Copy-Item .\SKILL.md $dest
 2. 触发条件（DSH 版本 / 插件版本 / 操作步骤）
 3. 根因分析
 4. 修复方法
+
+> 请尽量按**故障模式**描述（「客户端工厂重复注册」），而不是只写「某插件崩了」—— 前者可复用，后者过两个月就失效了。
 
 ## 许可
 
