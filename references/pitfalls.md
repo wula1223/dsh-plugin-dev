@@ -264,3 +264,109 @@ $s = Get-Content "$prof\.dsh-market\state.json" -Raw -Encoding UTF8 | ConvertFro
 
 
 ---
+
+
+### 5.10 `Config` 写成普通对象 —— 插件激活时 `.validate` 崩溃
+
+**症状**：面板显示「**异常**」，点启用只弹一行，没有堆栈：
+
+```
+启用失败: dsh: warning: 1 entry did not activate <id> (<包名>):
+TypeError: Cannot read properties of undefined (reading 'validate')
+```
+
+**故障模式**：插件把设置项声明成**普通对象**，而宿主按 **Schemastery Schema** 使用它：
+
+```ts
+// ✗ 崩溃：普通对象没有 validate
+export const Config = { pythonPath: 'python', latexEngine: 'xelatex' }
+```
+
+Cordis 挂载插件时会校验 config schema。取到的是普通对象，读 `.validate` 得 `undefined`，
+随后调用即抛错，**整个插件激活失败**（工具一个都没注册）。
+
+**为什么容易写错**：官方 `publish.md` 说「依赖来自用户 profile 的 `node_modules`」，
+常被理解成「不能 import 任何 `@deepseek-ai/*`」，于是有人为「零依赖」把 Schema 降级成普通对象 —— 反而制造崩溃。
+
+**正确写法**（`@deepseek-ai/schemastery` 是 Cordis 生态基础库，profile 里必然可解析）：
+
+```ts
+import Schema from '@deepseek-ai/schemastery'
+
+export const Config: Schema<Config> = Schema.object({
+  pythonPath: Schema.string().default('python'),
+  latexEngine: Schema.union(['xelatex', 'tectonic'] as const).default('xelatex'),
+  buildTimeoutMs: Schema.number().default(300000),
+})
+```
+
+同时 `package.json` 声明 peer 依赖：
+
+```json
+"peerDependencies": { "@deepseek-ai/schemastery": "^3.18.5" }
+```
+
+**判断步骤**（区分「代码没写好」与「装的是旧版」）：
+
+```js
+const m = await import('file:///<profile>/node_modules/<包名>/lib/index.js')
+console.log(typeof m.Config)                        // 应为 'function'（Schema 是函数）
+console.log(typeof m.Config?.['~standard']?.validate) // 应为 'function'
+```
+
+**规则**：
+
+- `Config` **必须是 `Schema.object(...)`**，不能是普通对象、也不能省略
+- Schemastery 的校验入口在 **`Schema['~standard'].validate`**，不是 `Schema.validate`
+- **可以**依赖 `@deepseek-ai/schemastery`；**不能**依赖 `dsh-tools` / `dsh-skill` 这类藏在 `app.asar` 里的宿主内部包（错误是 `Cannot find package`，与本条不同）
+- 面板只显示「异常」两个字时，**先想办法拿到那句英文报错**——本条的 `reading 'validate'` 与 5.3 的 `pending`、5.10 上方各条的错误文本互不重叠，报错原文是唯一可靠的分诊依据
+
+
+### 5.11 `ctx.get(name)` 在服务缺失时【抛异常】，不是返回 `undefined`
+
+**症状**：插件在面板标「异常」，但**工具其实已注册成功**（能调用），状态灯却是红的。日志：
+
+```
+服务激活失败: service not found: skills
+    at registerSkills (.../lib/skills.js)
+    at apply (.../lib/index.js)
+```
+
+**故障模式**：代码里写了「可选依赖 + 静默降级」，但判断方式错了：
+
+```ts
+// ✗ 假设 get 返回 undefined —— 缺服务时直接抛，降级逻辑永远走不到
+const skills = ctx.get?.('skills')
+if (skills == null) return () => {}
+```
+
+Cordis 的 `ctx.get(name)` 在服务未加载时**抛错**，不是返回 `undefined`。
+未写进 `inject` 的可选服务一旦缺失，`apply()` 在注册完全部工具后抛错，
+Loader 把整个插件标记为失败 —— **但工具已经进去了**，于是出现「能用却显示异常」这种矛盾状态。
+
+**正确写法**：
+
+```ts
+export const inject = ['tools']   // 只放【必选】；可选服务不要写进来
+
+export function registerSkills(ctx: Context): () => void {
+  let skills: any
+  try {
+    skills = (ctx as any).get?.('skills')     // 探测要 try/catch
+  } catch { return () => {} }
+  if (skills == null || typeof skills.register !== 'function') return () => {}
+
+  let disposer: any
+  try {
+    disposer = skills.register({ /* ... */ })  // 注册也 try/catch
+  } catch { return () => {} }
+  return () => { if (typeof disposer === 'function') disposer() }
+}
+```
+
+**规则**：
+
+- **可选依赖不要写进 `inject`** —— 写进去会让插件在缺该服务时根本不加载（比运行时降级更糟，见 5.3）
+- 任何 `ctx.get(...)` **一律包 `try/catch`**，不要依赖 `== null` 判空
+- 判断「异常」到底有没有影响功能：**看工具是否真的可调用**。工具在、只是状态红 → 本条；工具也不在 → 属 5.3 / 5.10
+- 同一 `apply()` 里先注册工具再探测可选服务，会让失败表现得更迷惑（工具成功、插件失败）。**把可选服务的探测前置**，失败更早暴露
