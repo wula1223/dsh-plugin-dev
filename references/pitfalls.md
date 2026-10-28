@@ -1,4 +1,4 @@
-## 5. ⚠️ 十一个必踩的坑（🟡 实测经验，非官方规定）
+## 5. ⚠️ 十二个必踩的坑（🟡 实测经验，非官方规定）
 
 > **本节全部为 🟡 实测内容** —— 都是在本机真实事故中复现并修复的，附崩溃日志原文。**官方文档并没有把这些写成规则**，引用时请注明这是实践经验，而不是官方规定。
 >
@@ -370,3 +370,62 @@ export function registerSkills(ctx: Context): () => void {
 - 任何 `ctx.get(...)` **一律包 `try/catch`**，不要依赖 `== null` 判空
 - 判断「异常」到底有没有影响功能：**看工具是否真的可调用**。工具在、只是状态红 → 本条；工具也不在 → 属 5.3 / 5.10
 - 同一 `apply()` 里先注册工具再探测可选服务，会让失败表现得更迷惑（工具成功、插件失败）。**把可选服务的探测前置**，失败更早暴露
+
+
+### 5.12 `required` 写在属性内 —— 宿主 JsonSchemaError 拒绝整个插件
+
+**症状**：启用失败，一次列出多条同类错误，全部指向 `properties.<名>.required`：
+
+```
+启用失败: dsh: warning: 1 entry did not activate <id> (<包名>):
+JsonSchemaError: unsupported JSON schema:
+  schema.properties.ok.required is not supported on type "boolean";
+  schema.properties.workspace.required is not supported on type "string";
+  schema.properties.created.required is not supported on type "array";
+  schema.properties.templateFiles.required is not supported on type "number";
+```
+
+**故障模式**：把 `required` 当成「属性级布尔标记」，实际 JSON Schema 规定它是**对象层级**的**字符串数组**，且只对 `type: 'object'` 生效：
+
+```ts
+// ✗ 每个属性各写一个 required: true
+schema: {
+  type: 'object',
+  properties: {
+    ok:    { type: 'boolean', required: true },
+    files: { type: 'array', items: { type: 'string' }, required: true },
+  },
+}
+
+// ✓ required 与 properties 同级，值是键名数组
+schema: {
+  type: 'object',
+  properties: {
+    ok:    { type: 'boolean' },
+    files: { type: 'array', items: { type: 'string' } },
+  },
+  required: ['ok', 'files'],
+}
+```
+
+**为什么容易写错**：TypeScript 侧手写 schema 时，`required: true` 看起来像「这个字段必填」的直觉写法；但在 boolean/string/number/array 上加 `required` 都是非法位置，校验器直接拒绝。
+
+**判断步骤**（递归扫出所有非法位置）：
+
+```js
+const walk = (node, path, out = []) => {
+  if (!node || typeof node !== 'object') return out
+  if (Array.isArray(node)) { node.forEach((v, i) => walk(v, path + '[' + i + ']', out)); return out }
+  if ('required' in node && !Array.isArray(node.required)) out.push(path + '.required = ' + JSON.stringify(node.required))
+  for (const [k, v] of Object.entries(node)) if (k !== 'required') walk(v, path + '.' + k, out)
+  return out
+}
+// 对每个工具的 output.schema 跑一遍，输出应为空数组
+```
+
+**规则**：
+
+- `required` **只能**是数组，且**只能**出现在 `type: 'object'` 的节点上，与 `properties` **同级**
+- 属性内部**不要**写 `required`（同级的 `type` / `items` / `description` 才是合法位置）
+- 报错会**一次性列出所有非法点**（本例 40 处），按条改完再重编，别只改第一条
+- 与 5.10 的区别：5.10 是**配置** schema（`Config` 导出），本条是**工具输出** schema（`output.schema`），两者的报错类名不同（`TypeError` vs `JsonSchemaError`）
